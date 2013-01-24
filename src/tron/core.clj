@@ -88,9 +88,90 @@
 ; * limiting the cheating capacity of 
 ;   a strategy
 
+(defn adapter 
+  "Creates a v2 strategy from a v1 strategy"
+  [old-strategy]
+  (fn [state]
+    (when-let [dir (apply old-strategy (:pos state))]
+      {:dir dir}) ))
+
+;;;;;;;;;;;;
+
+(defn ferrari [{:keys [dir togo] :or {togo 0}}]
+  (if (pos? togo)
+    {:dir dir :togo (dec togo)}
+    {:dir (rand-nth [:up :down :left :right])
+     :togo 5}))
+
+;;;;;;;;;;;
 
 
+(defn free? 
+   [pos]
+   (nil? (deref (get-in arena pos)))
+)
 
 
+(defn free-distance
+  [pos dir]
+  (count
+   (take-while
+     (fn [[i j ]] ( and (valid-pos? i j) (free?  [ i j])))
+     (rest
+       (iterate (fn [[ i j]] (next-pos i j dir)) pos)
+     )
+     )
+   )
+  )
+(defn better-direction
+  [pos dir1 dir2]
+  (if (> (free-distance pos dir1) (free-distance pos dir2))
+    dir1
+    dir2
+    )
+  )
 
+(defn best-direction
+  [pos]
+  (println pos)
+  (reduce (fn [dir1 dir2] (better-direction pos dir1 dir2)) (keys dirs))
+  )
+
+(defn smartass [{pos :pos}]
+  "strategy to to dodge walls and other racers"
+  {:dir (best-direction pos)}
+  )
+
+;;;;;;;;;;;;
+
+
+(def directions [:up :down :left :right])
+
+(defn possible-dirs [{[ i j] :pos}]
+  (->> directions
+       (map (partial next-pos i j))
+       (map (partial get-in arena))
+       (zipmap directions)
+       (filter #(and (val %) (nil? (deref (val %)))) )))
+
+(defn random-dir [state]
+  (let [dirs (possible-dirs state)]
+    (rand-nth (vec dirs))))
+
+(defn random-strategy [state]
+  {:dir ((random-dir state) 0)})
+
+
+(defn raster-dir [state]
+  (let [dirs (possible-dirs state)]
+    (first (vec dirs))))
+
+(defn raster-strategy [state]
+  {:dir ((raster-dir state) 0)})
+
+;;;; Launch them all!!
+
+#_(doseq [s [ferrari smartass 
+             random-strategy raster-strategy]]
+    (spawn-biker s))
 
