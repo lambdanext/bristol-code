@@ -46,8 +46,9 @@
 
 (defn biker [strategy]
   (fn self [{hue :hue [i j] :pos :as state}]
-    (let [dir (strategy i j)
-          pos (when dir (next-pos i j dir))
+    (let [new-state (strategy state)
+          pos (when new-state 
+                (next-pos i j (:dir new-state)))
           cell (when pos (get-in arena pos))
           moved (dosync 
                   (when (and cell (nil? @cell))
@@ -57,7 +58,7 @@
         (do
           (Thread/sleep sleep-length)
           (send-off *agent* self)
-          {:hue hue :pos pos})
+          (assoc new-state :hue hue :pos pos))
         (do 
           (println "arghhh" hue)
           (assoc state :dead true))))))
@@ -70,14 +71,14 @@
 
 #_(spawn-biker (constantly :right))
 
-(def kamikaze (constantly :right))
+(def kamikaze (constantly {:dir :right}))
 
-(defn stubborn [i j]
+(defn stubborn [{[i j] :pos}]
   (let [pos (next-pos i j :right)
         cell (get-in arena pos)]
     (if (and cell (nil? @cell))
-      :right
-      :up)))
+      {:dir :right}
+      {:dir :up})))
 
 ; ideas:
 ; * less stupid bots
