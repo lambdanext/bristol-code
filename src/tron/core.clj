@@ -50,7 +50,7 @@
           pos (when dir (next-pos i j dir))
           cell (when pos (get-in arena pos))
           moved (dosync 
-                  (when (and cell (not @cell))
+                  (when (and cell (nil? @cell))
                     (ref-set cell hue)
                     :ok))]
       (if moved
@@ -60,7 +60,7 @@
           {:hue hue :pos pos})
         (do 
           (println "arghhh" hue)
-          state)))))
+          (assoc state :dead true))))))
 
 (defn spawn-biker [strategy]
   (send-off (agent {:pos [(rand-int size)
@@ -70,6 +70,13 @@
 
 #_(spawn-biker (constantly :right))
 
+; ideas:
+; * less stupid bots
+; * wall disappearing when a bot dies
+; * faster when closer to a wall
+; * visibility cone/range
+; * limiting the cheating capacity of 
+;   a strategy
 
 
 
