@@ -70,6 +70,15 @@
 
 #_(spawn-biker (constantly :right))
 
+(def kamikaze (constantly :right))
+
+(defn stubborn [i j]
+  (let [pos (next-pos i j :right)
+        cell (get-in arena pos)]
+    (if (and cell (nil? @cell))
+      :right
+      :up)))
+
 ; ideas:
 ; * less stupid bots
 ; * wall disappearing when a bot dies
