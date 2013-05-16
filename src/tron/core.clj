@@ -30,148 +30,46 @@
   :draw draw
   :size [(* scale size) (* scale size)])
 
-(defn valid-pos? [i j]
+(defn valid-pos? [[i j]]
   (and (< -1 i size) (< -1 j size)))
 
-(def dirs {:down [0 1] 
-           :right [1 0] 
-           :up [0 -1]
-           :left [-1 0]})
+(def legal-moves #{[0 1] [1 0] [0 -1] [-1 0]})
 
-(defn next-pos [i j dir]
-  (let [[di dj] (dirs dir)
-        i (+ i di)
-        j (+ j dj)]
-    [i j]))
+(defn valid-move? [from to]
+  (contains? legal-moves (map - to from)))
 
-(defn biker [strategy]
-  (fn self [{hue :hue [i j] :pos :as state}]
-    (let [new-state (strategy state)
-          pos (when new-state 
-                (next-pos i j (:dir new-state)))
-          cell (when pos (get-in arena pos))
-          moved (dosync 
-                  (when (and cell (nil? @cell))
-                    (ref-set cell hue)
-                    :ok))]
-      (if moved
-        (do
-          (Thread/sleep sleep-length)
-          (send-off *agent* self)
-          (assoc new-state :hue hue :pos pos))
-        (do 
-          (println "arghhh" hue)
-          (assoc state :dead true))))))
+(defn biker [arena strategy]
+  (let [look (fn [pos] @(get-in arena pos))] 
+    (fn self [{:keys [state hue] :as agt-state}]
+	    (dosync
+	      (let [state' (strategy look state)
+              pos' (:pos state')
+              moved (when (and (valid-move? (:pos state) pos')
+                            (valid-pos? pos')
+                            (nil? @(get-in arena pos')))
+                      (ref-set (get-in arena  (:pos state')) hue))]
+         (if moved
+	        (do
+	          (Thread/sleep sleep-length)
+	          (send-off *agent* self)
+	          (assoc agt-state :state state'))
+	        (do 
+	          (println "arghhh" hue)
+	          (assoc agt-state :dead true))))))))
 
 (defn spawn-biker [strategy]
-  (send-off (agent {:pos [(rand-int size)
-                          (rand-int size)]
+  (send-off (agent {:state {:pos [(rand-int size)
+                                  (rand-int size)]}
                     :hue (rand-int 255)})
-        (biker strategy)))
+    (biker arena strategy)))
 
-#_(spawn-biker (constantly :right))
-
-(def kamikaze (constantly {:dir :right}))
-
-(defn stubborn [{[i j] :pos}]
-  (let [pos (next-pos i j :right)
-        cell (get-in arena pos)]
-    (if (and cell (nil? @cell))
-      {:dir :right}
-      {:dir :up})))
-
-; ideas:
-; * less stupid bots
-; * wall disappearing when a bot dies
-; * faster when closer to a wall
-; * visibility cone/range
-; * limiting the cheating capacity of 
-;   a strategy
-
-(defn adapter 
-  "Creates a v2 strategy from a v1 strategy"
-  [old-strategy]
-  (fn [state]
-    (when-let [dir (apply old-strategy (:pos state))]
-      {:dir dir}) ))
-
-;;;;;;;;;;;;
-
-(defn ferrari [{:keys [dir togo] :or {togo 0}}]
-  (if (pos? togo)
-    {:dir dir :togo (dec togo)}
-    {:dir (rand-nth [:up :down :left :right])
-     :togo 5}))
-
-;;;;;;;;;;;
-
-
-(defn free? 
-   [pos]
-   (nil? (deref (get-in arena pos)))
-)
-
-
-(defn free-distance
-  [pos dir]
-  (count
-   (take-while
-     (fn [[i j ]] ( and (valid-pos? i j) (free?  [ i j])))
-     (rest
-       (iterate (fn [[ i j]] (next-pos i j dir)) pos)
-     )
-     )
-   )
-  )
-(defn better-direction
-  [pos dir1 dir2]
-  (if (> (free-distance pos dir1) (free-distance pos dir2))
-    dir1
-    dir2
-    )
-  )
-
-(defn best-direction
-  [pos]
-  (println pos)
-  (reduce (fn [dir1 dir2] (better-direction pos dir1 dir2)) (keys dirs))
-  )
-
-(defn smartass [{pos :pos}]
-  "strategy to to dodge walls and other racers"
-  {:dir (best-direction pos)}
-  )
-
-;;;;;;;;;;;;
-
-
-(def directions [:up :down :left :right])
-
-(defn possible-dirs [{[ i j] :pos}]
-  (->> directions
-       (map (partial next-pos i j))
-       (map (partial get-in arena))
-       (zipmap directions)
-       (filter #(and (val %) (nil? (deref (val %)))) )))
-
-(defn random-dir [state]
-  (let [dirs (possible-dirs state)]
-    (rand-nth (vec dirs))))
-
-(defn random-strategy [state]
-  {:dir ((random-dir state) 0)})
-
-
-(defn raster-dir [state]
-  (let [dirs (possible-dirs state)]
-    (first (vec dirs))))
-
-(defn raster-strategy [state]
-  {:dir ((raster-dir state) 0)})
+(defn buzz 
+  "To the infinity and beyond!"
+  [look {[x y] :pos}]
+  {:pos [(inc x) y]})
 
 ;;;; Launch them all!!
 
-#_(doseq [s [ferrari smartass 
-             random-strategy raster-strategy]]
+#_(doseq [s [buzz buzz]]
     (spawn-biker s))
 
