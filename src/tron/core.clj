@@ -9,6 +9,11 @@
   (mapv vec (partition size
               (repeatedly (* size size) #(ref nil)))))
 
+(defn blank-arena []
+  (dosync
+    (doseq [row arena r row]
+      (ref-set r nil))))
+
 (defn setup []
   (q/color-mode :hsb)
   (q/smooth)
