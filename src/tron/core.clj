@@ -6,9 +6,8 @@
 (def sleep-length "time in ms between turns" 200)
 
 (def arena
-  (vec
-    (map vec (partition size
-               (repeatedly (* size size) #(ref nil))))))
+  (mapv vec (partition size
+              (repeatedly (* size size) #(ref nil)))))
 
 (defn setup []
   (q/color-mode :hsb)
