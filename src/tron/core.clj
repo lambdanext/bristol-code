@@ -37,8 +37,15 @@
 (defn valid-move? [from to]
   (contains? legal-moves (map - to from)))
 
+(def ^:private bots-gen (atom 0))
+
+(defn stop! [] (swap! bots-gen inc))
+
 (defn biker [arena strategy]
-  (let [look (fn [pos] @(get-in arena pos))] 
+  (let [look (fn [pos] (if (valid-pos? pos)
+                         @(get-in arena pos)
+                         :wall))
+        gen @bots-gen] 
     (fn self [{:keys [state hue] :as agt-state}]
 	    (dosync
 	      (let [state' (strategy look state)
@@ -47,7 +54,7 @@
                             (valid-pos? pos')
                             (nil? @(get-in arena pos')))
                       (ref-set (get-in arena  (:pos state')) hue))]
-         (if moved
+         (if (and (= gen @bots-gen) moved)
 	        (do
 	          (Thread/sleep sleep-length)
 	          (send-off *agent* self)
@@ -61,14 +68,4 @@
                                   (rand-int size)]}
                     :hue (rand-int 255)})
     (biker arena strategy)))
-
-(defn buzz 
-  "To the infinity and beyond!"
-  [look {[x y] :pos}]
-  {:pos [(inc x) y]})
-
-;;;; Launch them all!!
-
-#_(doseq [s [buzz buzz]]
-    (spawn-biker s))
 
