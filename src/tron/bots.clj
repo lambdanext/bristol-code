@@ -2,7 +2,7 @@
   (:require [tron.core :as tron]))
 
 (defn buzz 
-  "To the infinity and beyond!"
+  "To infinity and beyond!"
   [look {[x y] :pos}]
   {:pos [(inc x) y]})
 
