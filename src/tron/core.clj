@@ -1,8 +1,8 @@
 (ns tron.core
   (:require [quil.core :as q]))
 
-(def size "size of the square arena" 30)
-(def scale 20)
+(def size "size of the square arena" 60)
+(def scale 10)
 (def sleep-length "time in ms between turns" 200)
 
 (def arena
@@ -53,24 +53,30 @@
         gen @bots-gen] 
     (fn self [{:keys [state hue] :as agt-state}]
 	    (dosync
-	      (let [state' (strategy look state)
+	      (let [t (java.lang.System/currentTimeMillis)
+              state' (strategy look state)
+              t (- (java.lang.System/currentTimeMillis) t)
               pos' (:pos state')
-              moved (when (and (valid-move? (:pos state) pos')
+              moved (when (and (< t sleep-length) 
+                            (valid-move? (:pos state) pos')
                             (valid-pos? pos')
                             (nil? @(get-in arena pos')))
                       (ref-set (get-in arena  (:pos state')) hue))]
          (if (and (= gen @bots-gen) moved)
 	        (do
-	          (Thread/sleep sleep-length)
+	          (Thread/sleep (- sleep-length t))
 	          (send-off *agent* self)
 	          (assoc agt-state :state state'))
 	        (do 
 	          (println "arghhh" hue)
 	          (assoc agt-state :dead true))))))))
 
-(defn spawn-biker [strategy]
-  (send-off (agent {:state {:pos [(rand-int size)
-                                  (rand-int size)]}
-                    :hue (rand-int 255)})
-    (biker arena strategy)))
+(defn spawn-biker
+  ([strategy]
+    (spawn-biker strategy (rand-int 255)))
+  ([strategy hue]
+    (send-off (agent {:state {:pos [(rand-int size)
+                                    (rand-int size)]}
+                      :hue hue})
+      (biker arena strategy))))
 
