@@ -24,7 +24,7 @@
   (dosync 
     (doseq [x (range 0 size)
             y (range 0 size)]
-      (when-let [hue @(get-in arena [x y])]
+      (when-let [hue (some-> arena (get-in [x y]) deref deref)]
         (q/fill (q/color hue 255 255))
         (q/rect (* scale x) (* scale y) scale scale)))))
 
@@ -48,10 +48,10 @@
 
 (defn biker [arena strategy]
   (let [look (fn [pos] (if (valid-pos? pos)
-                         @(get-in arena pos)
+                         (some-> arena (get-in pos) deref deref)
                          :wall))
         gen @bots-gen] 
-    (fn self [{:keys [state hue] :as agt-state}]
+    (fn self [{:keys [state hueref] :as agt-state}]
 	    (dosync
 	      (let [t (java.lang.System/currentTimeMillis)
               state' (strategy look state)
@@ -59,15 +59,15 @@
               pos' (:pos state')
               moved (when (and (< t sleep-length) 
                             (valid-move? (:pos state) pos')
-                            (valid-pos? pos')
-                            (nil? @(get-in arena pos')))
-                      (ref-set (get-in arena  (:pos state')) hue))]
+                            (nil? (look pos')))
+                      (ref-set (get-in arena (:pos state')) hueref))]
          (if (and (= gen @bots-gen) moved)
 	        (do
 	          (Thread/sleep (- sleep-length t))
 	          (send-off *agent* self)
 	          (assoc agt-state :state state'))
-	        (do 
+	        (let [hue @hueref]
+            (ref-set hueref nil)
 	          (println "arghhh" hue)
 	          (assoc agt-state :dead true))))))))
 
@@ -77,6 +77,6 @@
   ([strategy hue]
     (send-off (agent {:state {:pos [(rand-int size)
                                     (rand-int size)]}
-                      :hue hue})
+                      :hueref (ref hue)})
       (biker arena strategy))))
 
