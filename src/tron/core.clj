@@ -3,7 +3,7 @@
 
 (def size "size of the square arena" 60)
 (def scale 10)
-(def sleep-length "time in ms between turns" 200)
+(def sleep-length "time in ms between turns" 100)
 
 (def arena
   (mapv vec (partition size
@@ -51,10 +51,14 @@
                          (some-> arena (get-in pos) deref deref)
                          :wall))
         gen @bots-gen] 
-    (fn self [{:keys [state hueref] :as agt-state}]
+    (fn self [{:keys [state hueref sym] :as agt-state}]
 	    (dosync
 	      (let [t (java.lang.System/currentTimeMillis)
-              state' (try (strategy look state)
+              state' (try 
+                       (binding
+                        [*out* (java.io.FileWriter.
+                                 "/dev/null")]
+                        (strategy look state))
                        (catch Exception e
                          nil))
               t (- (java.lang.System/currentTimeMillis) t)
@@ -80,15 +84,16 @@
                         (send-off *agent* fadeout)
                         b)
                       (ref-set hueref nil))))))
-	          (println "arghhh" hue)
+	          (println "arghhh" sym )
 	          (assoc agt-state :dead true))))))))
 
 (defn spawn-biker
   ([strategy]
     (spawn-biker strategy (rand-int 255)))
-  ([strategy hue]
+  ([strategy hue sym]
     (send-off (agent {:state {:pos [(rand-int size)
                                     (rand-int size)]}
-                      :hueref (ref [hue 255])})
+                      :hueref (ref [hue 255])
+                      :sym sym})
       (biker arena strategy))))
 

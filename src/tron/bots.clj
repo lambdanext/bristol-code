@@ -19,8 +19,20 @@
     {:pos (down pos)}))
 
 ;; launch bots
-(doseq [[s hue] 
-        (map vector 
-            [buzz down-or-right]
+(doseq [[s hue sym] 
+        (map (fn [sym hue]
+               [@(resolve sym) hue sym]) 
+            '[tron.bots.calum/newbuzz
+             tron.bots.mary/buzz
+             tron.bots.matthew/mybuzz
+             tron.bots.mt3593/robot
+             tron.bots.alexander/harold
+             tron.bots.joprem/mybuzz
+             tron.bots.katherine/buzz
+             tron.bots.james/spiral-buzz
+             tron.bots.jpearson/rastermouse
+             tron.bots.benjamin/clockwise
+             tron.bots.hector/buzz
+             tron.bots.sirob/wall-strategy]
             (iterate #(+ % 25) 0))]
-  (tron/spawn-biker s hue))
+  (tron/spawn-biker s hue sym))
