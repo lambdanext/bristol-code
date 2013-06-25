@@ -54,7 +54,9 @@
     (fn self [{:keys [state hueref] :as agt-state}]
 	    (dosync
 	      (let [t (java.lang.System/currentTimeMillis)
-              state' (strategy look state)
+              state' (try (strategy look state)
+                       (catch Exception e
+                         nil))
               t (- (java.lang.System/currentTimeMillis) t)
               pos' (:pos state')
               moved (when (and (< t sleep-length) 
