@@ -24,8 +24,8 @@
   (dosync 
     (doseq [x (range 0 size)
             y (range 0 size)]
-      (when-let [hue (some-> arena (get-in [x y]) deref deref)]
-        (q/fill (q/color hue 255 255))
+      (when-let [[hue b] (some-> arena (get-in [x y]) deref deref)]
+        (q/fill (q/color hue 255 b))
         (q/rect (* scale x) (* scale y) scale scale)))))
 
 (q/defsketch tron
@@ -66,8 +66,18 @@
 	          (Thread/sleep (- sleep-length t))
 	          (send-off *agent* self)
 	          (assoc agt-state :state state'))
-	        (let [hue @hueref]
-            (ref-set hueref nil)
+	        (let [[hue] @hueref]
+            (send-off (agent 255)
+              (fn fadeout [b]
+                (dosync
+                  (let [b (- b 30)]
+                    (if (pos? b) 
+                      (do
+                        (ref-set hueref [hue b])
+                        (Thread/sleep 200)
+                        (send-off *agent* fadeout)
+                        b)
+                      (ref-set hueref nil))))))
 	          (println "arghhh" hue)
 	          (assoc agt-state :dead true))))))))
 
@@ -77,6 +87,6 @@
   ([strategy hue]
     (send-off (agent {:state {:pos [(rand-int size)
                                     (rand-int size)]}
-                      :hueref (ref hue)})
+                      :hueref (ref [hue 255])})
       (biker arena strategy))))
 
