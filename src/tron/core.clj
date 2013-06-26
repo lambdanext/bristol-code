@@ -1,5 +1,6 @@
 (ns tron.core
-  (:require [quil.core :as q]))
+  (:require [quil.core :as q])
+  (:use [clojure.repl :only [pst]]))
 
 (def size "size of the square arena" 60)
 (def scale 10)
@@ -46,9 +47,11 @@
 
 (defn stop! [] (swap! bots-gen inc))
 
+(defn- alive? [[hue b]] (when (= 255 b) hue))
+
 (defn biker [arena strategy]
   (let [look (fn [pos] (if (valid-pos? pos)
-                         (some-> arena (get-in pos) deref deref)
+                         (some-> arena (get-in pos) deref deref alive?)
                          :wall))
         gen @bots-gen] 
     (fn self [{:keys [state hueref sym] :as agt-state}]
@@ -60,7 +63,7 @@
                                  "/dev/null")]
                         (strategy look state))
                        (catch Exception e
-                         nil))
+                         (pst e)))
               t (- (java.lang.System/currentTimeMillis) t)
               pos' (:pos state')
               moved (when (and (< t sleep-length) 
@@ -97,3 +100,12 @@
                       :sym sym})
       (biker arena strategy))))
 
+(defmacro run 
+  "small macro to avoid repeating bots names"
+  [& bots]
+  `(doseq [[s# sym# hue#] 
+           (map vector
+             ~(vec bots)
+             '~bots
+             (iterate (partial + 25) 0))]
+     (spawn-biker s# hue# sym#)))
