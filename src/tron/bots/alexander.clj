@@ -40,12 +40,3 @@
   {:p-pos c-pos :pos ( first (remove look (move-options c-pos directions)))
   })
 
-
-
-
-;; launch bots
-(doseq [[s hue]
-        (map vector
-            [harold]
-            (iterate #(+ % 25) 0))]
-  (tron/spawn-biker s hue))
