@@ -1,5 +1,6 @@
 (ns tron.bots
-  (:require [tron.core :as tron]))
+  (:require [tron.core :as tron]
+    tron.bots.darley tron.bots.coupland tron.bots.jerzywie tron.bots.whostolebenfrog tron.bots.dansmithy tron.bots.nicolas-ginder tron.bots.iansugar tron.bots.dmcgillen tron.bots.neilprosser tron.bots.joelittlejohn tron.bots.amanas tron.bots.msgodf tron.bots.billhedworth tron.bots.paulshine tron.bots.jarek))
 
 (defn empty-look 
   "A mock look function which just checks for the arena
@@ -63,4 +64,18 @@
   :TODO)
 
 ;; launch bots
-(tron/run buzz down-or-right)
+(tron/run tron.bots.darley/think
+    tron.bots.coupland/wallhugger
+    tron.bots.jerzywie/jerzy-bot
+    tron.bots.whostolebenfrog/ben
+    tron.bots.dansmithy/danny
+    tron.bots.nicolas-ginder/clever-one
+    tron.bots.iansugar/georgina
+    tron.bots.dmcgillen/don-bot
+    tron.bots.neilprosser/random-fritz
+    tron.bots.joelittlejohn/joebot
+    tron.bots.amanas/amanas
+    tron.bots.msgodf/msgodf-random-indecisive
+    tron.bots.billhedworth/move
+    tron.bots.paulshine/runme
+    tron.bots.jarek/jarek)
